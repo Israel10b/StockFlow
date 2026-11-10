@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EquipmentCreate(BaseModel):
-    name: str
-    total_quantity: int
+    name: str = Field(min_length=1)
+    total_quantity: int = Field(ge=0)
 
 app = FastAPI()
 
