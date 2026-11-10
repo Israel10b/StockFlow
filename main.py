@@ -45,3 +45,6 @@ def create_equipment(data: EquipmentCreate):
         "name": data.name,
         "total_quantity": data.total_quantity
     }
+
+    equipment.append(new_item)
+    return new_item
