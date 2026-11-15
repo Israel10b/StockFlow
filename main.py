@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
-
+from database import get_connection
 
 class EquipmentCreate(BaseModel):
     name: str = Field(min_length=1)
@@ -17,34 +17,69 @@ def home():
 def health():
     return{"status": "ok"}
 
-equipment = [
-    {"id": 1, "name": "Speaker", "total_quantity": 5},
-    {"id": 2, "name": "Microphone", "total_quantity": 8}
-]
+
 
 @app.get("/equipment")
 def get_equipment():
-    return equipment
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT id, name, total_quantity FROM equipment ORDER BY id"
+        )
+
+        return cursor.fetchall()
+
+    finally:
+        cursor.close()
+        connection.close()
 
 @app.get("/equipment/{equipment_id}")
 def get_equipment_id(equipment_id: int):
-    for item in equipment:
-        if item["id"] == equipment_id:
-            return item
-    raise HTTPException(
-        status_code=404,
-        detail="Equipment not found"
-    )
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT id, name, total_quantity FROM equipment WHERE id = %s",
+            (equipment_id,)
+        )
+
+        item = cursor.fetchone()
+
+        if item is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Equipment not found"
+            )
+
+        return item
+
+    finally:
+        cursor.close()
+        connection.close()
 
 @app.post("/equipment", status_code=201)
 def create_equipment(data: EquipmentCreate):
-    new_id = len(equipment) + 1
+    connection = get_connection()
+    cursor = connection.cursor()
 
-    new_item = {
-        "id": new_id,
-        "name": data.name,
-        "total_quantity": data.total_quantity
-    }
+    try:
+        cursor.execute(
+            "INSERT INTO equipment (name, total_quantity) VALUES (%s, %s)",
+            (data.name, data.total_quantity)
+        )
 
-    equipment.append(new_item)
-    return new_item
+        connection.commit()
+        new_id = cursor.lastrowid
+
+        return {
+            "id": new_id,
+            "name": data.name,
+            "total_quantity": data.total_quantity
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
