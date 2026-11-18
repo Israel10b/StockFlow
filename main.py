@@ -140,9 +140,3 @@ def create_equipment(data: EquipmentCreate):
     finally:
         cursor.close()
         connection.close()
-
-@app.post("/customers", status_code=201)
-def create_customer(data: CustomerCreate):
-    connection = get_connection()
-    cursor = connection.cursor()
-
